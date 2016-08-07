@@ -10,8 +10,8 @@
 
 @interface ViewController ()
 
-@property (nonatomic, strong) NSArray<NSURL *> *importURLs;
-@property (nonatomic, strong) NSURL *exportURL;
+@property (strong, nonatomic) NSArray *importURLs;
+@property (strong, nonatomic) NSURL *exportURL;
 
 @end
 
@@ -38,6 +38,37 @@
     NSString *cHFile = [cFile stringByAppendingString:@".h"];
     NSString *cMFile = [cFile stringByAppendingString:@".m"];
     
+    [mHCode appendFormat:@"#import <Foundation/Foundation.h>\n\n"];
+    [mMCode appendFormat:@"#import \"%@\"\n\n", mHFile];
+    [vHCode appendFormat:@"#import <UIKit/UIKit.h>\n#import \"%@\"\n\n", mHFile];
+    [vMCode appendFormat:@"#import \"%@\"\n\n", vHFile];
+    [cHCode appendFormat:@"#import <UIKit/UIKit.h>\n\n"];
+    [cMCode appendFormat:@"#import \"%@\"\n#import \"%@\"\n\n", cHFile, vHFile];
+    
+    NSArray *classes = config[@"classes"];
+    for (int i = 0; i < classes.count; ++i) {
+        NSString *mClass = [NSString stringWithFormat:@"%@%d", mFile, i+1];
+        NSString *vClass = [NSString stringWithFormat:@"%@%d", vFile, i+1];
+        
+        [mHCode appendFormat:@"@interface %@ : NSObject\n\n", mClass];
+        [mHCode appendFormat:@"@end\n\n"];
+        [mMCode appendFormat:@"@implementation %@\n\n", mClass];
+        [mMCode appendFormat:@"@end\n\n"];
+        [vHCode appendFormat:@"@interface %@ : UITableViewCell\n\n", vClass];
+        [vHCode appendFormat:@"@end\n\n"];
+        [vMCode appendFormat:@"@interface %@ ()\n\n", vClass];
+        [vMCode appendFormat:@"@end\n\n"];
+        [vMCode appendFormat:@"@implementation %@\n\n", vClass];
+        [vMCode appendFormat:@"@end\n\n"];
+    }
+    
+    [cHCode appendFormat:@"@interface %@ : UIViewController\n\n", cFile];
+    [cHCode appendFormat:@"@end\n\n"];
+    [cMCode appendFormat:@"@interface %@ ()\n\n", cFile];
+    [cMCode appendFormat:@"@end\n\n"];
+    [cMCode appendFormat:@"@implementation %@\n\n", cFile];
+    [cMCode appendFormat:@"@end\n\n"];
+    
     NSURL *mHURL = [self.exportURL URLByAppendingPathComponent:mHFile];
     NSURL *mMURL = [self.exportURL URLByAppendingPathComponent:mMFile];
     NSURL *vHURL = [self.exportURL URLByAppendingPathComponent:vHFile];
@@ -60,7 +91,6 @@
     [panel beginSheetModalForWindow:self.view.window completionHandler:^(NSInteger result) {
         if (result > 0) {
             self.importURLs = panel.URLs;
-            NSLog(@"%@", self.importURLs);
         }
     }];
 }
@@ -72,7 +102,6 @@
     [panel beginSheetModalForWindow:self.view.window completionHandler:^(NSInteger result) {
         if (result == 1) {
             self.exportURL = panel.URL;
-            NSLog(@"%@", self.exportURL);
             for (NSURL *url in self.importURLs) {
                 [self codeWithContentsOfURL:url];
             }
